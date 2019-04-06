@@ -1,6 +1,6 @@
 using Images
-using Plots
-pyplot()
+# using Plots
+# pyplot()
 # using ImageView
 
 using SIMD
@@ -8,17 +8,21 @@ using SIMD
 using BenchmarkTools
 # using Debugger
 
+
+@inline mylog(n) = if n == 1 0 else 1 + mylog(n>>1) end
+
 function render_julia_set!(pixels, c::Complex{T}, K, J, ::Val{MaxVal}, ::Val{V}, cmap) where {MaxVal, T, V}
     rJ = T(1) / J
     rK = T(1) / K
+    vrange = Vec(ntuple(v->T(v), V))
     for j in 1:J, kk in 1:div(K,V)
-        k = Vec(ntuple(v->T((kk-1) * V + v), V))
-        zim = T(3) * (one(Vec{V, T}) * j * rJ - T(1/2))
-        zre = T(3) * (k * rK - T(1/2))
-
+        zre = T(2) * ((((kk-1) * V + vrange) * rK - T(1/2)))
+        zim = T(2) * (one(Vec{V, T}) * j * rJ - T(1/2))
         ju_itrs = julia_pix(c, zre, zim, Val(MaxVal))
         for v in 1:V
+            # pixels[(kk-1) * V + v, j] = cmap[div(mylog(ju_itrs[v]) * MaxVal,  mylog(MaxVal))]
             pixels[(kk-1) * V + v, j] = cmap[ju_itrs[v]]
+            # pixels[(kk-1) * V + v, j] = cmap[(ju_itrs[v] * 7) % (MaxVal-1)+1]
         end
     end
 end
@@ -35,11 +39,12 @@ end
     for _ in 1:MaxVal-1
         zabs = zre * zre + zim * zim
         sel = zabs < threshold
+        if !any(sel)
+            return iters
+        end
+        # @show zre,zim,zabs, iters,sel
         iters = iters + vifelse(sel, v1, v0)
-        # @show zabs
-        # @show iters
-        zre = vifelse(sel, zre*zre - zim * zim + cre, zre)
-        zim = vifelse(sel, 2 * zre * zim + cim, zim)
+        zre,zim = vifelse(sel, zre * zre - zim * zim + cre, zre), vifelse(sel, (T(2) * zre * zim) + cim, zim)
     end
     iters
 end
@@ -56,6 +61,7 @@ end
 
 @inline function julia_pix_simple(c::Complex{T}, z, ::Val{MaxVal}) where {T,MaxVal}
     for iteration in 1:MaxVal-1
+        # @show z, real(z * z'), iteration
         if real(z * z') >= T(4)
             return iteration
         end
@@ -65,8 +71,8 @@ end
 end
 
 function bench(::Val{MaxVal}) where MaxVal
-    J=1080; K=1920
-    pixels = zeros(UInt32, J, K)
+    K=1920;J=1080
+    pixels = zeros(UInt32, K, J)
     cmap = map(colormap("Blues", MaxVal)) do aa
         convert(ARGB32,aa).color
     end
@@ -76,11 +82,15 @@ function bench(::Val{MaxVal}) where MaxVal
 
     # c = Float64(-0.75+0.11)*im # ~ 90ms
     c = (-0.75f0+0.11f0)*im # ~ 90ms
+    # c = 0.0f0 + 1.0f0 * im
     # c = im # ~ 20ms
     # c = 1 # ~ 13ms
 
-    render_julia_set!(pixels, c, J,K, Val(MaxVal), Val(8), cmap)
-    aa = @btime render_julia_set!($pixels, $c, $J,$K, $(Val(MaxVal)), $(Val(8)), $cmap)
+    render_julia_set_simple!(pixels, c, K, J, Val(MaxVal), cmap)
+    bb = @btime render_julia_set_simple!($pixels, $c, $K, $J, $(Val(MaxVal)), $cmap)
+    display(bb)
+    render_julia_set!(pixels, c, K, J, Val(MaxVal), Val(8), cmap)
+    aa = @btime render_julia_set!($pixels, $c, $K, $J, $(Val(MaxVal)), $(Val(8)), $cmap)
     display(aa)
     # @code_native render_julia_set!(pixels, c, J,K, Val(51), cmap)
 
@@ -93,21 +103,24 @@ function bench(::Val{MaxVal}) where MaxVal
 end
 
 function test(::Val{MaxVal}) where MaxVal
-    K=240; J=160
+    # K=24; J=16
+    K=1920;J=1080
     pixels = zeros(UInt32, K, J)
-    cmap = map(colormap("Blues", MaxVal)) do aa
-        convert(ARGB32,aa).color
+    cmap = map(colormap("Grays", MaxVal)) do aa
+        convert(ARGB32, aa).color
     end
 
     # c = (-0.75f0+0.11f0)*im # ~ 90ms
-    c = 1.0+0.0im
-    render_julia_set!(pixels, c, K, J, Val(MaxVal), Val(4), cmap)
+    c = 0.0f0 + 1.0f0 * im
+    # c = 1.0+0.0im
+    render_julia_set!(pixels, c, K, J, Val(MaxVal), Val(8), cmap)
     # render_julia_set_simple!(pixels, c, K, J, Val(MaxVal), cmap)
+    heatmap(pixels)
     # plot(colorview(ARGB32,pixels))
     # plot(pixels .+ 0.0, seriestype=:image)
-    pixels
+    # pixels
 end
 
 # MaxVal = 31
 # bench(Val(31))
-aa=test(Val(31))
+# aa=test(Val(31))

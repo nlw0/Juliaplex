@@ -16,8 +16,8 @@ function main(::Val{Maxiter}) where Maxiter
 
     # K=200;J=150
     # K=400;J=300
-    K=800;J=600
-    # K=1920;J=1080
+    # K=800;J=600
+    K=1920;J=1080
 
     win = SDL2.CreateWindow(
         "Juliaplex",
@@ -53,23 +53,31 @@ function main(::Val{Maxiter}) where Maxiter
     # end
 
     F = 64*24
+    # cinc = Float32(cos(2*pi/F)) + Float32(sin(2*pi/F))im
+    # c = 1.0f0 + 0.0f0 * im
     cinc = cos(2*pi/F) + sin(2*pi/F)im
-    c = 1.0 + 0.0im
-    cm = map(cmap("C2";N=Maxiter)) do aa
+    c = 1.0 + 0.0 * im
+    cm = map(cmap("C9";N=Maxiter)) do aa
         convert(ARGB32,aa).color
     end
+
+    ff=1
     while true
         SDL2.PumpEvents()
 
         # x,y = SDL2.mouse_position()
-        # c = (x*4/1980) # exp(Float32((x + y/108)*2*pi/1920 ) * im)
-        # cm = map(cmap("C2";N=Maxiter)) do aa
+        # c = exp(Float32((x + y/108)*2*pi/1920 ) * im)
+        # cm = map(cmap("R1";N=Maxiter)) do aa
             # convert(ARGB32,aa).color
         # end
         # aa = div(y * 31, 1080) + 1
         # cm = vcat(cm[aa:Maxiter], cm[1: aa])
 
-        c *= cinc
+        c = exp(Float32(
+            0.9275*pi * ((512-(512+ff)/ff)/512)^0.5
+        )*im)
+        ff += 1
+        # c *= cinc
 
         # c = -1.5
         # c = im
@@ -85,7 +93,7 @@ function main(::Val{Maxiter}) where Maxiter
             @show c
         end
 
-        render_julia_set!(pixels, c, K, J, Val(Maxiter), Val(4), cm)
+        render_julia_set!(pixels, c, K, J, Val(Maxiter), Val(8), cm)
 
         SDL2.UpdateTexture(texture, C_NULL, pointer(pixels), Int32(K * sizeof(UInt32)));
 
@@ -100,5 +108,9 @@ function main(::Val{Maxiter}) where Maxiter
     SDL2.Quit()
 end
 
+# main(Val(1023))
+# main(Val(511))
+main(Val(255))
+# main(Val(127))
 # main(Val(63))
-main(Val(31))
+# main(Val(31))
