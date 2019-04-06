@@ -16,11 +16,11 @@ function main(::Val{Maxiter}) where Maxiter
 
     # K=200;J=150
     # K=400;J=300
-    # K=800;J=600
-    K=1920;J=1080
+    K=800;J=600
+    # K=1920;J=1080
 
     win = SDL2.CreateWindow(
-        "Hello World!",
+        "Juliaplex",
         Int32(0),
         Int32(0),
         Int32(K),
@@ -85,7 +85,7 @@ function main(::Val{Maxiter}) where Maxiter
             @show c
         end
 
-        render_julia_set!(pixels, c, J, K, Val(Maxiter), cm)
+        render_julia_set!(pixels, c, K, J, Val(Maxiter), Val(4), cm)
 
         SDL2.UpdateTexture(texture, C_NULL, pointer(pixels), Int32(K * sizeof(UInt32)));
 
@@ -100,4 +100,5 @@ function main(::Val{Maxiter}) where Maxiter
     SDL2.Quit()
 end
 
-main(Val(63))
+# main(Val(63))
+main(Val(31))
