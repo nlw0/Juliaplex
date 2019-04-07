@@ -57,26 +57,37 @@ function main(::Val{Maxiter}) where Maxiter
     # c = 1.0f0 + 0.0f0 * im
     cinc = cos(2*pi/F) + sin(2*pi/F)im
     c = 1.0 + 0.0 * im
-    cm = map(cmap("C9";N=Maxiter)) do aa
+
+    cm = map(cmap("C1";N=Maxiter)) do aa
         convert(ARGB32,aa).color
     end
+    # cm2 = map(cmap("C2";N=Maxiter)) do aa
+        # convert(ARGB32,aa).color
+    # end
+    # cm3 = map(cmap("C3";N=Maxiter)) do aa
+        # convert(ARGB32,aa).color
+    # end
 
     ff=1
     while true
         SDL2.PumpEvents()
 
         # x,y = SDL2.mouse_position()
-        # c = exp(Float32((x + y/108)*2*pi/1920 ) * im)
+        # c = exp(Float32(( (x - 1920/2) / 10 + 1920/2 )*2*pi/1920 ) * im)
         # cm = map(cmap("R1";N=Maxiter)) do aa
             # convert(ARGB32,aa).color
         # end
         # aa = div(y * 31, 1080) + 1
         # cm = vcat(cm[aa:Maxiter], cm[1: aa])
 
-        c = exp(Float32(
-            0.9275*pi * ((512-(512+ff)/ff)/512)^0.5
-        )*im)
-        ff += 1
+        aa = floor(Int64, ((ff+1000)*0.001))%(Maxiter-1) +1
+        cm = vcat(cm[aa:Maxiter], cm[1: aa])
+
+        nf=512
+        f = (ff % div(nf, 4))+2
+        g = Float32(((nf-(nf+f)/f)/nf)^0.5)
+        c = exp(g * 0.925 * pi * im)
+
         # c *= cinc
 
         # c = -1.5
@@ -103,6 +114,8 @@ function main(::Val{Maxiter}) where Maxiter
         SDL2.RenderCopy(renderer, texture, C_NULL, C_NULL)
         SDL2.RenderPresent(renderer)
         sleep(0.0)
+
+        ff += 1
     end
 
     SDL2.Quit()
@@ -110,7 +123,7 @@ end
 
 # main(Val(1023))
 # main(Val(511))
-main(Val(255))
-# main(Val(127))
+# main(Val(255))
+main(Val(127))
 # main(Val(63))
 # main(Val(31))

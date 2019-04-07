@@ -9,15 +9,14 @@ using BenchmarkTools
 # using Debugger
 
 
-@inline mylog(n) = if n == 1 0 else 1 + mylog(n>>1) end
-
 function render_julia_set!(pixels, c::Complex{T}, K, J, ::Val{MaxVal}, ::Val{V}, cmap) where {MaxVal, T, V}
-    rJ = T(1) / J
-    rK = T(1) / K
+    dx = T(1) / J
+    oj = (J+1)/2
+    ok = (div(K,V)+1)/2
     vrange = Vec(ntuple(v->T(v), V))
     for j in 1:J, kk in 1:div(K,V)
-        zre = T(2) * ((((kk-1) * V + vrange) * rK - T(1/2)))
-        zim = T(2) * (one(Vec{V, T}) * j * rJ - T(1/2))
+        zre = T(1.5) * ((((kk-ok-1) * V + vrange) * dx))
+        zim = T(1.5) * (one(Vec{V, T}) * (j-oj) * dx)
         ju_itrs = julia_pix(c, zre, zim, Val(MaxVal))
         for v in 1:V
             # pixels[(kk-1) * V + v, j] = cmap[div(mylog(ju_itrs[v]) * MaxVal,  mylog(MaxVal))]
