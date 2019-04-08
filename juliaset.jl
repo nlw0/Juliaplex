@@ -7,21 +7,22 @@ using SIMD
 
 using BenchmarkTools
 # using Debugger
-
+using Base.Threads
 
 function render_julia_set!(pixels, c::Complex{T}, K, J, ::Val{MaxVal}, ::Val{V}, cmap) where {MaxVal, T, V}
     dx = T(1) / J
     oj = (J+1)/2
     ok = (div(K,V)+1)/2
     vrange = Vec(ntuple(v->T(v), V))
-    for j in 1:J, kk in 1:div(K,V)
-        zre = T(1.5) * ((((kk-ok-1) * V + vrange) * dx))
-        zim = T(1.5) * (one(Vec{V, T}) * (j-oj) * dx)
-        ju_itrs = julia_pix(c, zre, zim, Val(MaxVal))
-        for v in 1:V
-            # pixels[(kk-1) * V + v, j] = cmap[div(mylog(ju_itrs[v]) * MaxVal,  mylog(MaxVal))]
-            pixels[(kk-1) * V + v, j] = cmap[ju_itrs[v]]
-            # pixels[(kk-1) * V + v, j] = cmap[(ju_itrs[v] * 7) % (MaxVal-1)+1]
+    # @threads for j in 1:J
+    for j in 1:J
+        for kk in 1:div(K,V)
+            zre = T(1.5) * ((((kk-ok-1) * V + vrange) * dx))
+            zim = T(1.5) * (one(Vec{V, T}) * (j-oj) * dx)
+            ju_itrs = julia_pix(c, zre, zim, Val(MaxVal))
+            for v in 1:V
+                pixels[(kk-1) * V + v, j] = cmap[ju_itrs[v]]
+            end
         end
     end
 end

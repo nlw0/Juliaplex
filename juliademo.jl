@@ -4,7 +4,6 @@ using PerceptualColourMaps
 using SimpleDirectMediaLayer
 const SDL2 = SimpleDirectMediaLayer
 
-
 include("juliaset.jl")
 
 function main(::Val{Maxiter}) where Maxiter
@@ -122,8 +121,8 @@ function main(::Val{Maxiter}) where Maxiter
 end
 
 # main(Val(1023))
-# main(Val(511))
+main(Val(511))
 # main(Val(255))
-main(Val(127))
+# main(Val(127))
 # main(Val(63))
 # main(Val(31))
