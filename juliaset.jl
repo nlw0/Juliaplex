@@ -14,8 +14,8 @@ function render_julia_set!(pixels, c::Complex{T}, K, J, ::Val{MaxVal}, ::Val{V},
     oj = (J+1)/2
     ok = (div(K,V)+1)/2
     vrange = Vec(ntuple(v->T(v), V))
-    # @threads for j in 1:J
-    for j in 1:J
+    @threads for j in 1:J
+    # for j in 1:J
         for kk in 1:div(K,V)
             zre = T(1.5) * ((((kk-ok-1) * V + vrange) * dx))
             zim = T(1.5) * (one(Vec{V, T}) * (j-oj) * dx)

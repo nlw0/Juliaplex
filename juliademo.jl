@@ -83,6 +83,8 @@ function main(::Val{Maxiter}) where Maxiter
         cm = vcat(cm[aa:Maxiter], cm[1: aa])
 
         nf=512
+        # nf=256
+        # nf=128
         f = (ff % div(nf, 4))+2
         g = Float32(((nf-(nf+f)/f)/nf)^0.5)
         c = exp(g * 0.925 * pi * im)
@@ -121,8 +123,8 @@ function main(::Val{Maxiter}) where Maxiter
 end
 
 # main(Val(1023))
-main(Val(511))
-# main(Val(255))
+# main(Val(511))
+main(Val(255))
 # main(Val(127))
 # main(Val(63))
 # main(Val(31))
