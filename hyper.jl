@@ -7,6 +7,8 @@ using StaticArrays
 using SimpleDirectMediaLayer
 const SDL2 = SimpleDirectMediaLayer
 
+include("moeb.jl")
+
 function main(::Val{Maxiter}) where Maxiter
 
     SDL2.GL_SetAttribute(SDL2.GL_MULTISAMPLEBUFFERS, 16)
@@ -56,10 +58,14 @@ function main(::Val{Maxiter}) where Maxiter
         convert(ARGB32,aa).color
     end
 
-    ff=1
+    ff = 1
 
-    ww = rand(21) .+ 0.5
-    vv = rand(21) .+ 0.5
+    w1 = rand() .+ 0.5
+    v1 = rand() .+ 0.5
+    w2 = rand() .+ 0.5
+    v2 = rand() .+ 0.5
+
+    xx = rand(64).^0.5 .* exp.(im * 2*π * rand(64))
 
     while true
         SDL2.PumpEvents()
@@ -72,26 +78,24 @@ function main(::Val{Maxiter}) where Maxiter
             @show ff
         end
 
-
         SDL2.UpdateTexture(texture, C_NULL, pointer(pixels), Int32(K * sizeof(UInt32)));
 
         SDL2.PumpEvents()
         SDL2.SetRenderDrawColor(renderer, 0, 0, 0, SDL2.ALPHA_OPAQUE);
         SDL2.RenderClear(renderer);
 
-        # SDL2.RenderCopy(renderer, texture, C_NULL, C_NULL)
+        render_unitcirc!(renderer, (K,J))
 
-        # SDL2.SetRenderDrawColor(renderer, 255, 255, 255, SDL2.ALPHA_OPAQUE);
-        # SDL2.RenderDrawLine(renderer, 320, 200, 300, 240);
-        # SDL2.RenderDrawLine(renderer, 300, 240, 340, 240);
-        # SDL2.RenderDrawLine(renderer, 340, 240, 320, 200);
+        t1 = sin(w1 * ff/200)
+        s1 = π * (sin(v1 * ff/150))
+        p1 = t1 * exp(im * s1)
+        t2 = sin(w2 * ff/200)
+        s2 = π * (sin(v2 * ff/150))
+        p2 = t2 * exp(im * s2)
 
-        for (w,v) in zip(ww,vv)
-            t1 = sin(w * ff/200)
-            s1 = π * (sin(v*ff/150))
-            render_hyp!(renderer, (K,J), s1, t1)
+        for x in xx
+            render_mo!(renderer, (K,J), p1,p2, x)
         end
-
 
         SDL2.RenderPresent(renderer)
         sleep(0.0)
@@ -102,25 +106,89 @@ function main(::Val{Maxiter}) where Maxiter
     SDL2.Quit()
 end
 
-function render_hyp!(renderer, (K,J), s,t)
+function render_unitcirc!(renderer, (K,J))
     cam = AffineMap([500 0; 0 500], [K,J]/2)
 
     SDL2.SetRenderDrawColor(renderer, 255, 255, 255, SDL2.ALPHA_OPAQUE);
 
     R = RotMatrix(2*π/1001)
 
-    x1 = SVector(0.0,1.0)
-    p1 = round.(Int, cam(x1))
+    x2 = SVector(0.0,1.0)
+    p2 = round.(Int, cam(x2))
     for n in 1:1100
+        x1 = x2
+        p1 = p2
         x2 = R * x1
         p2 = round.(Int, cam(x2))
         SDL2.RenderDrawLine(renderer, p1[1], p1[2], p2[1], p2[2])
-        x1 = x2
-        p1 = p2
         if norm(x2) >1
             break
         end
     end
+end
+
+imto2d(x) = SVector(real(x), imag(x))
+
+function render_mo!(renderer, (K,J), q1,q2, x2)
+    mo = NormalTrans(q1, q2, 1.01 + 0im)
+
+    cam = AffineMap([500 0; 0 500], [K,J]/2)
+
+    imo = inv(mo)
+    x2i = x2
+    p2 = round.(Int, cam(imto2d(x2)))
+    p2i = round.(Int, cam(imto2d(x2i)))
+    N = 44
+
+    ip2 = p2
+
+    SDL2.SetRenderDrawColor(renderer, 200, 200, 200, SDL2.ALPHA_OPAQUE);
+    for n in 1:N
+        x1 = x2
+        p1 = p2
+        x1i = x2i
+        p1i = p2i
+
+        x2 = mo(x1)
+        x2i = imo(x1i)
+
+        p2 = round.(Int, cam(imto2d(x2)))
+        p2i = round.(Int, cam(imto2d(x2i)))
+        SDL2.RenderDrawLine(renderer, p1[1], p1[2], p2[1], p2[2])
+        SDL2.RenderDrawLine(renderer, p1i[1], p1i[2], p2i[1], p2i[2])
+    end
+
+    SDL2.SetRenderDrawColor(renderer, 255, 33, 33, SDL2.ALPHA_OPAQUE);
+    SDL2.RenderDrawPoint(renderer, Int32(ip2[1]), Int32(ip2[2]))
+    SDL2.RenderDrawPoint(renderer, Int32(ip2[1]), Int32(ip2[2]+1))
+    SDL2.RenderDrawPoint(renderer, Int32(ip2[1]), Int32(ip2[2]-1))
+    SDL2.RenderDrawPoint(renderer, Int32(ip2[1]+1), Int32(ip2[2]))
+    SDL2.RenderDrawPoint(renderer, Int32(ip2[1]-1), Int32(ip2[2]))
+
+    ip2 = round.(Int, cam(imto2d(q1)))
+
+    SDL2.SetRenderDrawColor(renderer, 33, 33, 255, SDL2.ALPHA_OPAQUE);
+    SDL2.RenderDrawPoint(renderer, Int32(ip2[1]), Int32(ip2[2]))
+    SDL2.RenderDrawPoint(renderer, Int32(ip2[1]), Int32(ip2[2]+1))
+    SDL2.RenderDrawPoint(renderer, Int32(ip2[1]), Int32(ip2[2]-1))
+    SDL2.RenderDrawPoint(renderer, Int32(ip2[1]+1), Int32(ip2[2]))
+    SDL2.RenderDrawPoint(renderer, Int32(ip2[1]-1), Int32(ip2[2]))
+
+    ip2 = round.(Int, cam(imto2d(q2)))
+
+    SDL2.SetRenderDrawColor(renderer, 33, 33, 255, SDL2.ALPHA_OPAQUE);
+    SDL2.RenderDrawPoint(renderer, Int32(ip2[1]), Int32(ip2[2]))
+    SDL2.RenderDrawPoint(renderer, Int32(ip2[1]), Int32(ip2[2]+1))
+    SDL2.RenderDrawPoint(renderer, Int32(ip2[1]), Int32(ip2[2]-1))
+    SDL2.RenderDrawPoint(renderer, Int32(ip2[1]+1), Int32(ip2[2]))
+    SDL2.RenderDrawPoint(renderer, Int32(ip2[1]-1), Int32(ip2[2]))
+
+end
+
+function render_cline!(renderer, (K,J), s,t)
+    cam = AffineMap([500 0; 0 500], [K,J]/2)
+
+    SDL2.SetRenderDrawColor(renderer, 255, 255, 255, SDL2.ALPHA_OPAQUE);
 
     θ = atan((1-t^2)/(t^2+1), (2*t)/(t^2+1))
     r = tan(θ)
@@ -134,53 +202,24 @@ function render_hyp!(renderer, (K,J), s,t)
 
     R = RotMatrix(α)
 
-    delta = RotMatrix(α/2)*SVector(1.0,0.0)
+    delta = RotMatrix(-α/2)*SVector(1.0,0.0)
     delta = ll * delta / norm(delta)
 
-    x1 = SVector(0.0,0.0)
-    p1 = round.(Int, (cam∘T1)(x1))
-    p1i = round.(Int, (cam∘T2)(x1))
+    x2 = SVector(0.0,0.0)
+    p2 = round.(Int, (cam∘T1)(x2))
+    p2i = round.(Int, (cam∘T2)(x2))
     for n in 1:N
+        x1 = x2
+        p1 = p2
+        p1i = p2i
+        delta = R * delta
         x2 = x1 + delta
-        delta  = R * delta
         p2 = round.(Int, (cam∘T1)(x2))
         p2i = round.(Int, (cam∘T2)(x2))
         SDL2.RenderDrawLine(renderer, p1[1], p1[2], p2[1], p2[2])
         SDL2.RenderDrawLine(renderer, p1i[1], p1i[2], p2i[1], p2i[2])
-        # SDL2.RenderDrawPoint(renderer, Int32(p1[1]), Int32(p1[2] - 2))
-        x1 = x2
-        p1 = p2
-        p1i = p2i
     end
 
-end
-
-function render_cube!(renderer, (K,J), ff)
-    cam = AffineMap([500 0; 0 500], [K,J]/2)
-
-    θ = 2*π* [sin(ff/200+1.0),sin(2*ff/200),sin(ff/2/200)]
-    R = RodriguesVec(θ...)
-
-    cube = hcat([[x,y,z] for x in [-1,1], y in [-1,1], z in [-1,1]]...)
-
-    rc = map(eachcol(cube)) do v
-        vr = (cam ∘ PerspectiveMap() ∘ Translation([0,0,5]))(R * v)
-        round.(Int, vr)
-    end
-
-    SDL2.SetRenderDrawColor(renderer, 255, 255, 255, SDL2.ALPHA_OPAQUE);
-    for (ea,eb) in [(1,2), (1,3), (1,5), (2,4), (2,6), (3,4),
-                    (3,7), (4,8), (5,6), (5,7), (6,8), (7,8)]
-        p1 = rc[ea]
-        p2 = rc[eb]
-        SDL2.RenderDrawLine(renderer, p1[1], p1[2], p2[1], p2[2])
-    end
-
-end
-
-function render_px!(pixels, (K,J), ff)
-    (K,J) = size(pixels)
-    pixels[1+ff%K,1+ff%J] = convert(ARGB32, RGB(0.2,0.5,0.9)).color
 end
 
 # main(Val(1023))
