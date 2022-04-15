@@ -130,7 +130,7 @@ end
 imto2d(x) = SVector(real(x), imag(x))
 
 function render_mo!(renderer, (K,J), q1,q2, x2)
-    mo = NormalTrans(q1, q2, 1.01 + 0im)
+    mo = NormalTrans(q1, q2, 0.97 + 0.02im)
 
     cam = AffineMap([500 0; 0 500], [K,J]/2)
 

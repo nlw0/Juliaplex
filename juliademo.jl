@@ -4,40 +4,45 @@ using PerceptualColourMaps
 using SimpleDirectMediaLayer
 const SDL2 = SimpleDirectMediaLayer
 
+using SimpleDirectMediaLayer.LibSDL2
+
+
 include("juliaset.jl")
 
 function main(::Val{Maxiter}) where Maxiter
 
-    SDL2.GL_SetAttribute(SDL2.GL_MULTISAMPLEBUFFERS, 16)
-    SDL2.GL_SetAttribute(SDL2.GL_MULTISAMPLESAMPLES, 16)
+    # SDL2.GL_SetAttribute(SDL2.GL_MULTISAMPLEBUFFERS, 16)
+    # SDL2.GL_SetAttribute(SDL2.GL_MULTISAMPLESAMPLES, 16)
+    SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 16)
+    SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 16)
 
-    SDL2.init()
+    # SDL2.init()
 
     # K=200;J=150
     # K=400;J=300
     # K=800;J=600
     K=1920;J=1080
 
-    win = SDL2.CreateWindow(
+    win = SDL_CreateWindow(
         "Juliaplex",
         Int32(0),
         Int32(0),
         Int32(K),
         Int32(J),
-        UInt32(SDL2.WINDOW_SHOWN)
+        UInt32(SDL_WINDOW_SHOWN)
     )
-    SDL2.SetWindowResizable(win,true)
+    SDL_SetWindowResizable(win, SDL_bool(true))
 
-    renderer = SDL2.CreateRenderer(
+    renderer = SDL_CreateRenderer(
         win,
         Int32(-1),
-        UInt32(SDL2.RENDERER_ACCELERATED | SDL2.RENDERER_PRESENTVSYNC)
+        UInt32(SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC)
     )
 
-    texture = SDL2.CreateTexture(
+    texture = SDL_CreateTexture(
         renderer,
-        SDL2.PIXELFORMAT_ARGB8888,
-        Int32(SDL2.TEXTUREACCESS_STATIC),
+        SDL_PIXELFORMAT_ARGB8888,
+        Int32(SDL_TEXTUREACCESS_STATIC),
         Int32(K),
         Int32(J)
     )
@@ -69,7 +74,7 @@ function main(::Val{Maxiter}) where Maxiter
 
     ff=1
     while true
-        SDL2.PumpEvents()
+        SDL_PumpEvents()
 
         # x,y = SDL2.mouse_position()
         # c = exp(Float32(( (x - 1920/2) / 10 + 1920/2 )*2*pi/1920 ) * im)
@@ -97,29 +102,35 @@ function main(::Val{Maxiter}) where Maxiter
         # c = exp((0.5pi + 0.1/3)*im)
         # c = im#exp(0.5pi*im)
 
-        ev = SDL2.event()
-        if typeof(ev) == SDL2.WindowEvent && ev.event == SDL2.WINDOWEVENT_CLOSE
-            @show "CLOSE!", ev
+
+        event_ref = Ref{SDL_Event}()
+        SDL_PollEvent(event_ref)
+        evt = event_ref[]
+
+        if evt.type == SDL_QUIT
+            @info "CLOSE!"
             break
-        elseif typeof(ev) == SDL2.MouseButtonEvent && ev.button==0x01 && ev.state == 0x01
+        # end
+        elseif evt.type == SDL_MOUSEBUTTONDOWN
+            # @show evt.button.button
             @show c
         end
 
         render_julia_set!(pixels, c, K, J, Val(Maxiter), Val(8), cm)
 
-        SDL2.UpdateTexture(texture, C_NULL, pointer(pixels), Int32(K * sizeof(UInt32)));
+        SDL_UpdateTexture(texture, C_NULL, pointer(pixels), Int32(K * sizeof(UInt32)));
 
-        SDL2.PumpEvents()
-        SDL2.SetRenderDrawColor(renderer, 0, 0, 0, 255)
-        SDL2.RenderClear(renderer)
-        SDL2.RenderCopy(renderer, texture, C_NULL, C_NULL)
-        SDL2.RenderPresent(renderer)
+        SDL_PumpEvents()
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255)
+        SDL_RenderClear(renderer)
+        SDL_RenderCopy(renderer, texture, C_NULL, C_NULL)
+        SDL_RenderPresent(renderer)
         sleep(0.0)
 
         ff += 1
     end
 
-    SDL2.Quit()
+    SDL_Quit()
 end
 
 # main(Val(1023))
